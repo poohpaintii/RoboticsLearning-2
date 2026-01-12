@@ -543,7 +543,7 @@
                             <div class="bg-white p-3 rounded border border-orange-200 font-mono text-slate-800 text-sm break-all">
                                 ${lesson.task}
                             </div>
-                            ${lesson.copy ? `<button onclick="copyToTerm('${lesson.cmd.replace(/'/g, "\\'")}')" class="mt-3 bg-orange-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-orange-700 flex items-center gap-2 transition w-full justify-center"><i data-lucide="copy" class="w-4 h-4"></i> Copy Command</button>` : ''}
+                            ${lesson.copy ? `<button onclick="copyToTerm(${currentIndex})" class="mt-3 bg-orange-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-orange-700 flex items-center gap-2 transition w-full justify-center"><i data-lucide="copy" class="w-4 h-4"></i> Copy Command</button>` : ''}
                             <div class="mt-3 text-sm text-slate-500 flex items-center gap-2"><i data-lucide="lightbulb" class="w-4 h-4 text-yellow-500"></i> Hint: ${lesson.hint}</div>
                         </div>
                     </div>`;
@@ -569,7 +569,9 @@
             document.getElementById('score-val').innerText = score;
         }
 
-        function copyToTerm(cmd) {
+        function copyToTerm(idx) {
+            const list = getLessons();
+            const cmd = list[idx].cmd;
             document.getElementById('terminal-input').value = cmd;
             document.getElementById('terminal-input').focus();
         }
