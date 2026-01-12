@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS 2 Installation Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; }
+        .code-font { font-family: 'Fira Code', monospace; }
+        .terminal-cursor::after {
+            content: ' '; display: inline-block; width: 10px; height: 1.2em;
+            background-color: #f97316; animation: blink 1s step-end infinite; vertical-align: middle;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #2e1065; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 4px; }
+        
+        .fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .glow-command {
+            border-left: 3px solid #f97316;
+            padding-left: 8px;
+            background: rgba(249, 115, 22, 0.1);
+        }
+        .error-command {
+            border-left: 3px solid #ef4444;
+            padding-left: 8px;
+            background: rgba(239, 68, 68, 0.1);
+        }
+        /* Ubuntu Terminal Colors */
+        .term-bg { background-color: #300a24; }
+        .term-text { color: #ffffff; }
+        .ubuntu-prompt { color: #87ff00; }
+    </style>
+</head>
+<body class="bg-slate-100 h-screen flex flex-col overflow-hidden relative">
+
+    <!-- 1. Registration Screen -->
+    <div id="screen-register" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-500 to-purple-600"></div>
+            <div class="text-center mb-6">
+                <div class="bg-orange-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="settings" class="w-10 h-10 text-orange-600"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-slate-800">ROS 2 Install Lab</h1>
+                <p class="text-slate-500 text-sm">จำลองการติดตั้ง ROS 2 Humble บน Ubuntu</p>
+            </div>
+            <form id="form-register" class="space-y-4">
+                <input type="text" id="input-name" required placeholder="ชื่อ-นามสกุล (ภาษาไทย)" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none">
+                <input type="text" id="input-id" required placeholder="รหัสนักศึกษา" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none">
+                <input type="text" id="input-group" required placeholder="กลุ่มเรียน (Section)" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none">
+                <button type="submit" class="w-full bg-orange-600 text-white py-3 rounded-xl font-bold hover:bg-orange-700 transition shadow-lg shadow-orange-500/30">เข้าสู่ระบบ</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. Mode Selection Screen -->
+    <div id="screen-mode" class="hidden fixed inset-0 bg-slate-50 z-[90] flex items-center justify-center p-4 overflow-y-auto">
+        <div class="max-w-6xl w-full py-10">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-slate-800 mb-1">สวัสดี, <span id="mode-username" class="text-orange-600">User</span> 👋</h2>
+                    <p class="text-slate-500">เลือกโมดูลการเรียนรู้ (Progress Saved Until Logout)</p>
+                </div>
+                <button onclick="logout()" class="text-slate-400 hover:text-red-500 flex items-center gap-2 text-sm font-medium transition">
+                    <i data-lucide="log-out" class="w-4 h-4"></i> ออกจากระบบ
+                </button>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- Tutorial Module -->
+                <button onclick="selectMode('tutorial')" class="bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl transition transform hover:-translate-y-1 text-left border-2 border-transparent hover:border-orange-400 group relative overflow-hidden flex flex-col h-full">
+                    <div class="absolute top-0 right-0 bg-orange-500 text-white text-[10px] px-3 py-1 rounded-bl-lg font-bold">Step-by-Step Guide</div>
+                    <div class="bg-orange-100 w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:bg-orange-600 transition-colors">
+                        <i data-lucide="book-open" class="w-8 h-8 text-orange-600 group-hover:text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">1. วิธีการติดตั้ง (Tutorial)</h3>
+                    <p class="text-slate-500 text-sm mb-4 flex-1">เรียนรู้ขั้นตอนการติดตั้ง ROS 2 ตั้งแต่ Locale Setup, GPG Keys จนถึงการ Install Package</p>
+                    <div class="mt-4 pt-4 border-t border-gray-100 w-full">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-400">Progress</span>
+                            <span id="prog-tutorial" class="text-orange-600 font-bold">0%</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div id="bar-tutorial" class="h-full bg-orange-500 transition-all" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </button>
+
+                <!-- Basic Exam Module -->
+                <button onclick="selectMode('exam_basic')" class="bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl transition transform hover:-translate-y-1 text-left border-2 border-transparent hover:border-purple-400 group flex flex-col h-full">
+                    <div class="bg-purple-100 w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-500 transition-colors">
+                        <i data-lucide="list-checks" class="w-8 h-8 text-purple-600 group-hover:text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">2. ทดสอบติดตั้ง (Basic)</h3>
+                    <p class="text-slate-500 text-sm mb-4 flex-1">ทดสอบลำดับขั้นตอนการติดตั้ง (Sequential Steps) โดยไม่มีคำใบ้</p>
+                    <div class="mt-4 pt-4 border-t border-gray-100 w-full">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-400">Score</span>
+                            <span id="prog-basic" class="text-purple-600 font-bold">0/100</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div id="bar-basic" class="h-full bg-purple-500 transition-all" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </button>
+
+                <!-- Advanced Exam Module -->
+                <button onclick="selectMode('exam_advanced')" class="bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl transition transform hover:-translate-y-1 text-left border-2 border-transparent hover:border-blue-400 group flex flex-col h-full">
+                    <div class="bg-blue-100 w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 transition-colors">
+                        <i data-lucide="terminal-square" class="w-8 h-8 text-blue-600 group-hover:text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">3. ภารกิจ Environment (Adv)</h3>
+                    <p class="text-slate-500 text-sm mb-4 flex-1">ตั้งค่า Environment Variables และ .bashrc เพื่อให้ ROS 2 ทำงานอัตโนมัติ</p>
+                    <div class="mt-4 pt-4 border-t border-gray-100 w-full">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-400">Score</span>
+                            <span id="prog-adv" class="text-blue-600 font-bold">0/30</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div id="bar-adv" class="h-full bg-blue-500 transition-all" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Main Interface -->
+    <div id="screen-lab" class="hidden flex-1 flex flex-col h-full">
+        <!-- Header -->
+        <header class="bg-slate-800 text-white p-3 shadow-lg flex justify-between items-center shrink-0 z-10 border-b border-slate-700">
+            <div class="flex items-center gap-4">
+                <div id="mode-badge" class="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 bg-orange-600">
+                    <i data-lucide="book-open" class="w-3 h-3"></i> Tutorial
+                </div>
+                <div class="flex flex-col">
+                    <div class="text-sm font-bold leading-tight" id="lab-user-name">Name</div>
+                    <div class="text-[10px] text-slate-400 font-mono" id="lab-user-id">ID</div>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-6">
+                <button onclick="backToHome()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded transition text-slate-200">
+                    <i data-lucide="home" class="w-3 h-3 inline mr-1"></i> หน้าหลัก
+                </button>
+                <div class="bg-slate-900/50 px-4 py-1.5 rounded-full border border-slate-600 flex items-center gap-2">
+                    <i data-lucide="trophy" class="w-4 h-4 text-yellow-500"></i>
+                    <span class="text-sm font-mono text-yellow-100"><span id="score-val" class="font-bold text-white text-lg">0</span> pts</span>
+                </div>
+                <div class="text-right w-32">
+                    <div class="text-[10px] text-slate-400 uppercase tracking-wide mb-1">Progress</div>
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+                            <div id="progress-bar" class="h-full bg-orange-500 transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <span id="progress-text" class="text-xs font-mono text-white">0/0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Workspace -->
+        <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
+            <!-- Left Panel -->
+            <section class="w-full md:w-1/2 bg-white flex flex-col border-r border-gray-200 relative">
+                <div class="flex-1 overflow-y-auto custom-scroll p-6" id="lesson-scroll-area">
+                    <div id="lesson-content" class="max-w-2xl mx-auto space-y-6 pb-32">
+                        <!-- Injected -->
+                    </div>
+                </div>
+                <!-- Success Panel -->
+                <div id="success-panel" class="hidden absolute bottom-0 left-0 right-0 bg-white border-t-4 border-green-500 p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-20">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-green-100 p-3 rounded-full shrink-0">
+                            <i data-lucide="check-circle-2" class="w-8 h-8 text-green-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold text-gray-800 mb-1">ขั้นตอนสำเร็จ!</h3>
+                            <div class="text-sm text-gray-600 mb-4 bg-green-50 p-3 rounded border border-green-100">
+                                <strong>💡 System Status:</strong> <span id="success-takeaway">...</span>
+                            </div>
+                            <div class="flex gap-3">
+                                <button onclick="nextLevel()" id="btn-next-level" class="px-6 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 shadow-lg shadow-green-500/30 transition flex items-center gap-2">
+                                    ไปขั้นตอนถัดไป <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Ubuntu Terminal -->
+            <section class="w-full md:w-1/2 term-bg flex flex-col h-1/2 md:h-auto relative border-l border-slate-700">
+                <div class="bg-[#2c001e] px-4 py-2 flex items-center justify-between border-b border-purple-900 select-none shrink-0">
+                    <div class="flex gap-2">
+                        <div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+                        <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                        <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+                    </div>
+                    <div class="text-xs text-purple-200 font-mono flex items-center gap-2">
+                        <i data-lucide="terminal" class="w-3 h-3"></i> student@ubuntu: ~
+                    </div>
+                </div>
+                <div id="terminal-container" class="flex-1 p-4 font-mono text-sm md:text-base term-text overflow-y-auto custom-scroll code-font leading-relaxed" onclick="focusTerminal()">
+                    <div class="text-gray-400 mb-2">Welcome to Ubuntu 22.04 LTS (Jammy Jellyfish)</div>
+                    <div class="text-gray-400 mb-4" id="terminal-welcome-msg">System ready. Type commands to install ROS 2.</div>
+                    <div id="terminal-history"></div>
+                    <div class="flex items-center mt-2">
+                        <span class="ubuntu-prompt mr-2 font-bold whitespace-nowrap" id="prompt-path">student@ubuntu:~$</span>
+                        <input type="text" id="terminal-input" autocomplete="off" class="bg-transparent border-none outline-none text-white flex-1 w-full focus:ring-0 p-0 m-0 caret-transparent terminal-cursor">
+                    </div>
+                    <div id="terminal-bottom" class="h-4"></div>
+                </div>
+                
+                <!-- Nano Overlay (Reused but styled for Ubuntu) -->
+                <div id="nano-editor" class="hidden absolute inset-0 term-bg z-30 flex-col font-mono text-white">
+                    <div class="bg-gray-200 text-black px-2 py-1 flex justify-between text-xs md:text-sm shrink-0">
+                        <span>GNU nano 6.2</span>
+                        <span id="nano-filename">File: ...</span>
+                        <span>Modified</span>
+                    </div>
+                    <div id="nano-hint-box" class="bg-purple-900/50 p-2 text-xs text-purple-200 border-b border-purple-800 hidden">
+                        💡 <strong>Task:</strong> Add the following line to the end of file: <br>
+                        <code id="nano-code-snippet" class="text-white block mt-1 bg-black/30 p-1 rounded font-bold">source /opt/ros/humble/setup.bash</code>
+                    </div>
+                    <textarea id="nano-content" class="flex-1 bg-transparent border-none outline-none resize-none text-gray-300 w-full p-4 font-mono text-sm leading-relaxed" spellcheck="false"></textarea>
+                    <div class="bg-[#2c001e] p-2 grid grid-cols-2 gap-2 text-xs text-gray-400 shrink-0 border-t border-purple-900">
+                        <button class="bg-green-700 hover:bg-green-600 text-white p-2 rounded flex items-center justify-center gap-2 transition" onclick="exitNano()">
+                            <i data-lucide="save" class="w-4 h-4"></i> ^X Save & Exit
+                        </button>
+                        <div class="flex items-center justify-center text-gray-500">^O Write Out</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 4. Certificate Screen -->
+    <div id="screen-cert" class="hidden fixed inset-0 bg-slate-900 z-[200] overflow-y-auto p-4 flex items-center justify-center">
+        <div class="bg-white max-w-4xl w-full shadow-2xl relative animate-fade-in-up">
+            <div id="cert-content" class="p-12 border-[12px] border-double border-orange-900 bg-white text-center relative">
+                <div class="absolute inset-0 opacity-5" style="background-image: radial-gradient(#ea580c 1px, transparent 1px); background-size: 20px 20px;"></div>
+                <div class="relative z-10">
+                    <div class="flex justify-center mb-6">
+                        <div class="bg-orange-600 text-white p-4 rounded-full shadow-xl">
+                            <i data-lucide="award" class="w-16 h-16"></i>
+                        </div>
+                    </div>
+                    <h1 class="text-4xl font-serif font-bold text-slate-900 mb-2">CERTIFICATE OF COMPLETION</h1>
+                    <p class="text-orange-600 uppercase tracking-[0.2em] text-sm mb-8 font-bold" id="cert-subtitle">ROS 2 Installation & Environment Setup</p>
+                    <p class="text-xl text-slate-600 italic mb-4">This certifies that</p>
+                    <h2 id="cert-name" class="text-4xl font-bold text-slate-800 mb-2 pb-2 border-b-2 border-slate-200 inline-block px-10">Name</h2>
+                    
+                    <div class="mt-8 flex justify-between items-start max-w-2xl mx-auto bg-orange-50 p-6 rounded-xl border border-orange-100">
+                        <div class="text-left">
+                            <span class="block text-xs text-orange-400 uppercase font-bold">Student ID</span>
+                            <div class="font-bold text-slate-700" id="cert-id">ID</div>
+                            <div class="text-sm text-slate-600" id="cert-group">Group</div>
+                        </div>
+                        <div class="text-center">
+                             <span class="block text-xs text-orange-400 uppercase font-bold">Module</span>
+                             <div class="font-bold text-purple-600 text-lg" id="cert-module">Tutorial</div>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-xs text-orange-400 uppercase font-bold">Score</span>
+                            <div class="font-bold text-green-600 text-2xl" id="cert-score">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 text-xs text-slate-400 max-w-2xl mx-auto text-left border-t border-slate-100 pt-2">
+                        <span class="font-bold uppercase text-orange-400">Verified Skills:</span>
+                        <span id="cert-skills" class="italic">Locale Setup, Apt Repositories, GPG Keys, Package Installation, Environment Sourcing</span>
+                    </div>
+
+                    <div class="mt-10 flex justify-between items-end px-10">
+                        <div class="text-left">
+                            <p class="text-xs text-slate-400 uppercase">Date</p>
+                            <p id="cert-date" class="font-mono text-slate-600">---</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="w-40 border-b border-slate-400 mb-2"></div>
+                            <p class="text-xs text-slate-400 uppercase">Instructor Signature</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-100 p-4 flex justify-between items-center border-t border-slate-200 gap-4">
+                <button onclick="backToHome()" class="text-slate-500 hover:text-slate-800 text-sm font-medium">กลับหน้าหลัก</button>
+                <button onclick="saveCert()" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-orange-700 flex items-center gap-2 shadow-lg">
+                    <i data-lucide="download" class="w-4 h-4"></i> บันทึกรูปภาพ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONTENT: ROS 2 Installation ---
+        const tutorialLessons = [
+            { 
+                id:0, title:"1. เตรียมความพร้อม (Locale)", 
+                desc:"ROS 2 ต้องการระบบที่รองรับ UTF-8 เพื่อการแสดงผลที่ถูกต้อง ตรวจสอบ Locale ปัจจุบันด้วยคำสั่งนี้", 
+                visual:`<i data-lucide="languages" class="w-16 h-16 text-blue-500"></i>`, 
+                task:"พิมพ์ <code>locale</code>", cmd:"locale", 
+                hint:"locale", takeaway:"การตั้งค่าภาษา (Locale) สำคัญมาก เพื่อป้องกันปัญหา Encoding ในภายหลัง" 
+            },
+            { 
+                id:1, title:"2. เปิดใช้งาน Universe Repo", 
+                desc:"เราต้องเปิดใช้งาน Repository 'universe' ของ Ubuntu เพื่อให้เข้าถึง Packages ที่จำเป็นได้", 
+                visual:`<i data-lucide="globe" class="w-16 h-16 text-purple-500"></i>`, 
+                task:"พิมพ์ <code>sudo add-apt-repository universe</code>", cmd:"sudo add-apt-repository universe", 
+                hint:"sudo add-apt-repository universe", takeaway:"Universe Repo เก็บซอฟต์แวร์ Community-maintained ที่จำเป็น" 
+            },
+            { 
+                id:2, title:"3. อัปเดตและติดตั้ง Tools", 
+                desc:"อัปเดตรายการแพ็กเกจและติดตั้ง curl เพื่อใช้ดาวน์โหลด GPG Key", 
+                visual:`<i data-lucide="download-cloud" class="w-16 h-16 text-green-500"></i>`, 
+                task:"พิมพ์ <code>sudo apt update && sudo apt install curl -y</code>", 
+                cmd:"sudo apt update && sudo apt install curl -y", 
+                hint:"ใช้ && เพื่อรันสองคำสั่งต่อเนื่องกัน", takeaway:"curl เป็นเครื่องมือดาวน์โหลดไฟล์ผ่าน Command Line ที่ใช้บ่อย" 
+            },
+            { 
+                id:3, title:"4. ดาวน์โหลด GPG Key", 
+                desc:"เพิ่ม GPG Key ของ ROS 2 เพื่อยืนยันความปลอดภัยของแพ็กเกจ (คำสั่งยาว กดปุ่ม Copy ได้เลย)", 
+                visual:`<i data-lucide="key" class="w-16 h-16 text-yellow-500"></i>`, 
+                task:"ใช้คำสั่ง <code>sudo curl ... ros.key</code> (กดปุ่ม Copy ด้านล่าง)", 
+                cmd:"sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg", 
+                copy: true,
+                hint:"คลิกปุ่ม Copy Command สีส้ม", takeaway:"GPG Key ใช้ยืนยันว่าซอฟต์แวร์มาจากผู้พัฒนาจริง ไม่ได้ถูกปลอมแปลง" 
+            },
+            { 
+                id:4, title:"5. เพิ่ม Repository ลง Sources List", 
+                desc:"บอกให้ apt รู้ว่าจะไปดาวน์โหลด ROS 2 ได้จากที่ไหน", 
+                visual:`<i data-lucide="list-plus" class="w-16 h-16 text-orange-500"></i>`, 
+                task:"เพิ่มบรรทัดลงใน sources.list.d (กด Copy)", 
+                cmd:'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null', 
+                copy: true,
+                hint:"กด Copy Command", takeaway:"เราสร้างไฟล์ .list แยกใน sources.list.d เพื่อความเป็นระเบียบ" 
+            },
+            { 
+                id:5, title:"6. อัปเดต Cache อีกครั้ง", 
+                desc:"หลังจากเพิ่ม Repo ใหม่แล้ว ต้องสั่ง update อีกครั้งเพื่อให้เครื่องมองเห็นแพ็กเกจใหม่", 
+                visual:`<i data-lucide="refresh-cw" class="w-16 h-16 text-blue-400"></i>`, 
+                task:"พิมพ์ <code>sudo apt update</code>", cmd:"sudo apt update", 
+                hint:"sudo apt update", takeaway:"ต้อง update ทุกครั้งหลังแก้ไข sources list" 
+            },
+            { 
+                id:6, title:"7. ติดตั้ง ROS 2 Humble", 
+                desc:"ขั้นตอนสำคัญ! สั่งติดตั้ง ROS 2 Desktop (รวม GUI tools)", 
+                visual:`<i data-lucide="package-check" class="w-16 h-16 text-red-500"></i>`, 
+                task:"พิมพ์ <code>sudo apt install ros-humble-desktop</code>", cmd:"sudo apt install ros-humble-desktop", 
+                hint:"sudo apt install ros-humble-desktop", takeaway:"ros-humble-desktop มาพร้อม RViz และ Demo nodes พร้อมใช้งาน" 
+            },
+            { 
+                id:7, title:"8. ตั้งค่า Environment (Source)", 
+                desc:"เพื่อให้เรียกใช้คำสั่ง ros2 ได้ เราต้อง Source setup file ก่อน", 
+                visual:`<i data-lucide="terminal" class="w-16 h-16 text-slate-600"></i>`, 
+                task:"พิมพ์ <code>source /opt/ros/humble/setup.bash</code>", cmd:"source /opt/ros/humble/setup.bash", 
+                hint:"source /opt/ros/humble/setup.bash", takeaway:"คำสั่ง source โหลดตัวแปรระบบให้ Terminal รู้จัก ROS 2" 
+            },
+            { 
+                id:8, title:"9. ตรวจสอบผลลัพธ์", 
+                desc:"ลองพิมพ์คำสั่ง ROS 2 เพื่อเช็คว่าติดตั้งสมบูรณ์หรือไม่", 
+                visual:`<i data-lucide="check-circle" class="w-16 h-16 text-green-600"></i>`, 
+                task:"พิมพ์ <code>printenv ROS_DISTRO</code>", cmd:"printenv ROS_DISTRO", 
+                hint:"printenv ROS_DISTRO", takeaway:"ถ้าขึ้นคำว่า humble แสดงว่าพร้อมใช้งานแล้ว!" 
+            }
+        ];
+
+        const basicExamLessons = [
+            { title:"Q1: Update System", desc:"จงอัปเดต Package Index ของระบบ", task:"Run update command", cmd:"sudo apt update" },
+            { title:"Q2: Install Curl", desc:"จงติดตั้งโปรแกรม curl", task:"Install curl", cmd:"sudo apt install curl" },
+            { title:"Q3: Add Universe", desc:"จงเพิ่ม Universe Repository", task:"Add apt repo universe", cmd:"sudo add-apt-repository universe" },
+            { title:"Q4: Update Again", desc:"จงอัปเดตระบบอีกครั้ง", task:"Run update", cmd:"sudo apt update" },
+            { title:"Q5: Install ROS 2 Base", desc:"จงติดตั้งแพ็กเกจ <code>ros-humble-base</code> (แบบไม่มี GUI)", task:"Install ros-humble-base", cmd:"sudo apt install ros-humble-base" },
+            { title:"Q6: Source Setup", desc:"จง Source ไฟล์ setup.bash ของ ROS 2", task:"Source environment", cmd:"source /opt/ros/humble/setup.bash" },
+            { title:"Q7: Install Build Tools", desc:"จงติดตั้ง <code>python3-colcon-common-extensions</code>", task:"Install colcon", cmd:"sudo apt install python3-colcon-common-extensions" },
+            { title:"Q8: Check ROS Version", desc:"จงตรวจสอบเวอร์ชัน ROS ที่ใช้อยู่", task:"Check env var ROS_DISTRO", cmd:"printenv ROS_DISTRO" },
+            { title:"Q9: Auto-Remove", desc:"จงลบแพ็กเกจที่ไม่จำเป็นออก (Clean up)", task:"Run autoremove", cmd:"sudo apt autoremove" },
+            { title:"Q10: Clear Cache", desc:"จงล้างหน้าจอ Terminal", task:"Clear screen", cmd:"clear" }
+        ];
+
+        const advancedExamLessons = [
+            { 
+                title:"Mission 1: Bashrc Persistence", 
+                desc:"สถานการณ์: ขี้เกียจพิมพ์ source ทุกครั้งที่เปิด Terminal ใหม่<br>เงื่อนไข: เปิดไฟล์ <code>~/.bashrc</code> ด้วย nano แล้วเพิ่มคำสั่ง source ลงไปบรรทัดล่างสุด", 
+                task:"แก้ไข .bashrc เพิ่ม source line", 
+                cmd: "nano", exp: ".bashrc",
+                type: "scenario_edit",
+                snippet: "source /opt/ros/humble/setup.bash",
+                successMsg: "Automation Configured!"
+            },
+            {
+                title:"Mission 2: Verify Automation",
+                desc:"สถานการณ์: ทดสอบว่า .bashrc ทำงานจริง<br>เงื่อนไข: สั่ง <code>source ~/.bashrc</code> เพื่อโหลดค่าใหม่ แล้วเช็ค <code>printenv ROS_DISTRO</code>",
+                task:"Source .bashrc แล้วเช็คค่า",
+                cmd: "source ~/.bashrc", // Then wait for printenv
+                type: "step_chain",
+                nextCmd: "printenv ROS_DISTRO",
+                successMsg: "Environment Persistent!"
+            },
+            {
+                title:"Mission 3: Install Rosdep",
+                desc:"สถานการณ์: ต้องการติดตั้ง dependency manager<br>เงื่อนไข: ติดตั้ง <code>python3-rosdep</code>",
+                task:"Install python3-rosdep",
+                cmd: "sudo apt install python3-rosdep",
+                type: "step",
+                successMsg: "Rosdep Installed!"
+            }
+        ];
+
+        // --- STATE ---
+        let user = { name: "", id: "", group: "" };
+        let currentMode = "tutorial";
+        let currentIndex = 0;
+        let score = 0;
+        let systemState = { 
+            aptUpdated: false, 
+            curlInstalled: false, 
+            universeAdded: false,
+            keyAdded: false,
+            repoAdded: false,
+            rosInstalled: false,
+            envSourced: false 
+        };
+        let isLevelSuccess = false;
+        let userProgress = {
+            tutorial: { idx: 0, score: 0 },
+            exam_basic: { idx: 0, score: 0 },
+            exam_advanced: { idx: 0, score: 0 }
+        };
+
+        // --- INIT & PERSISTENCE ---
+        function init() {
+            const saved = localStorage.getItem('ros2_install_user');
+            if(saved) {
+                const data = JSON.parse(saved);
+                user = data.user;
+                userProgress = data.progress || userProgress;
+                showModeScreen();
+                restoreBars();
+            } else {
+                document.getElementById('screen-register').classList.remove('hidden');
+            }
+        }
+
+        function restoreBars() {
+            updateBar('tutorial', userProgress.tutorial.idx, 9);
+            updateBar('basic', userProgress.exam_basic.score, 100);
+            updateBar('adv', userProgress.exam_advanced.score, 30);
+        }
+
+        function updateBar(key, val, max) {
+            const pct = (val / max) * 100;
+            const elBar = document.getElementById(`bar-${key}`);
+            const elText = document.getElementById(`prog-${key}`);
+            if(elBar) elBar.style.width = `${pct}%`;
+            if(elText) elText.innerText = key==='tutorial' ? `${Math.round(pct)}%` : `${val}/${max}`;
+        }
+
+        function saveState() {
+            localStorage.setItem('ros2_install_user', JSON.stringify({ user, progress: userProgress }));
+        }
+
+        document.getElementById('form-register').addEventListener('submit', (e) => {
+            e.preventDefault();
+            user.name = document.getElementById('input-name').value;
+            user.id = document.getElementById('input-id').value;
+            user.group = document.getElementById('input-group').value;
+            saveState();
+            showModeScreen();
+        });
+
+        function showModeScreen() {
+            document.getElementById('screen-register').classList.add('hidden');
+            document.getElementById('screen-lab').classList.add('hidden');
+            document.getElementById('screen-cert').classList.add('hidden');
+            document.getElementById('screen-mode').classList.remove('hidden');
+            document.getElementById('mode-username').innerText = user.name;
+            restoreBars();
+        }
+
+        function logout() {
+            localStorage.removeItem('ros2_install_user');
+            location.reload();
+        }
+
+        function selectMode(mode) {
+            currentMode = mode;
+            currentIndex = userProgress[mode].idx;
+            score = userProgress[mode].score;
+            isLevelSuccess = false;
+            
+            document.getElementById('screen-mode').classList.add('hidden');
+            document.getElementById('screen-lab').classList.remove('hidden');
+
+            const badge = document.getElementById('mode-badge');
+            badge.className = `px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${mode.includes('exam') ? (mode.includes('basic')?'bg-purple-600':'bg-blue-600') : 'bg-orange-600'}`;
+            badge.innerText = mode.toUpperCase().replace('_', ' ');
+
+            document.getElementById('lab-user-name').innerText = user.name;
+            document.getElementById('lab-user-id').innerText = user.id;
+
+            loadLesson();
+            lucide.createIcons();
+            document.getElementById('terminal-input').focus();
+        }
+
+        function getLessons() {
+            if(currentMode === 'tutorial') return tutorialLessons;
+            if(currentMode === 'exam_basic') return basicExamLessons;
+            return advancedExamLessons;
+        }
+
+        function loadLesson() {
+            const list = getLessons();
+            if(currentIndex >= list.length) { finishModule(); return; }
+            const lesson = list[currentIndex];
+            
+            document.getElementById('success-panel').classList.add('hidden');
+            isLevelSuccess = false;
+
+            const container = document.getElementById('lesson-content');
+            if (currentMode === 'tutorial') {
+                container.innerHTML = `
+                    <div class="fade-in-up">
+                        <div class="text-xs font-bold text-orange-500 uppercase mb-2">Step ${currentIndex+1}/${list.length}</div>
+                        <h2 class="text-3xl font-bold text-slate-800 mb-4">${lesson.title}</h2>
+                        <div class="flex justify-center my-6"><div class="bg-orange-50 p-6 rounded-full shadow-inner">${lesson.visual}</div></div>
+                        <div class="text-slate-600 mb-6 leading-relaxed text-lg">${lesson.desc}</div>
+                        <div class="bg-orange-50 border border-orange-100 p-5 rounded-xl">
+                            <h4 class="font-bold text-orange-700 mb-2">คำสั่ง (Command):</h4>
+                            <div class="bg-white p-3 rounded border border-orange-200 font-mono text-slate-800 text-sm break-all">
+                                ${lesson.task}
+                            </div>
+                            ${lesson.copy ? `<button onclick="copyToTerm('${lesson.cmd.replace(/'/g, "\\'")}')" class="mt-3 bg-orange-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-orange-700 flex items-center gap-2 transition w-full justify-center"><i data-lucide="copy" class="w-4 h-4"></i> Copy Command</button>` : ''}
+                            <div class="mt-3 text-sm text-slate-500 flex items-center gap-2"><i data-lucide="lightbulb" class="w-4 h-4 text-yellow-500"></i> Hint: ${lesson.hint}</div>
+                        </div>
+                    </div>`;
+            } else {
+                // Exam Mode UI
+                container.innerHTML = `
+                    <div class="fade-in-up">
+                        <div class="text-xs font-bold text-purple-600 uppercase mb-2">Task ${currentIndex+1}/${list.length}</div>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-4">${lesson.title}</h2>
+                        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-4">${lesson.desc}</div>
+                        <div class="bg-slate-800 text-white p-4 rounded-lg"><div class="text-xs text-slate-400 mb-1">TASK</div>${lesson.task}</div>
+                    </div>`;
+            }
+            lucide.createIcons();
+            updateStats();
+        }
+
+        function updateStats() {
+            const list = getLessons();
+            const pct = (currentIndex / list.length) * 100;
+            document.getElementById('progress-bar').style.width = `${pct}%`;
+            document.getElementById('progress-text').innerText = `${currentIndex}/${list.length}`;
+            document.getElementById('score-val').innerText = score;
+        }
+
+        function copyToTerm(cmd) {
+            document.getElementById('terminal-input').value = cmd;
+            document.getElementById('terminal-input').focus();
+        }
+
+        // --- COMMAND LOGIC ---
+        function checkCommand(rawInput) {
+            const input = rawInput.trim();
+            if(!input) return;
+            const parts = input.split(' ');
+            const cmd = parts[0];
+            const list = getLessons();
+            const lesson = list[currentIndex];
+
+            let output = "";
+            let isMissionCorrect = false;
+            let isSimulation = false;
+
+            // --- SIMULATION LOGIC (Apt, Source, etc) ---
+            if (cmd === 'sudo' || cmd === 'apt') {
+                isSimulation = true;
+                // Simulate loading time
+                document.getElementById('terminal-input').disabled = true;
+                
+                if (input.includes('update')) {
+                    simulateAptUpdate(() => finalizeCommand(input, lesson));
+                    return; // Async handle
+                } else if (input.includes('install')) {
+                    simulateAptInstall(() => finalizeCommand(input, lesson));
+                    return; // Async handle
+                }
+            } else if (cmd === 'source') {
+                // Logic update state
+                systemState.envSourced = true;
+            } else if (cmd === 'locale') {
+                output = "LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8";
+            } else if (cmd === 'printenv') {
+                if(input.includes('ROS_DISTRO')) output = systemState.envSourced ? "humble" : "";
+            } else if (cmd === 'clear') {
+                document.getElementById('terminal-history').innerHTML='';
+                document.getElementById('terminal-input').value='';
+                // Check if clear was the mission
+                if (lesson.cmd === 'clear') finalizeCommand(input, lesson);
+                return;
+            } else if (cmd === 'nano') {
+                const filename = parts[1] || "";
+                openNano(filename, lesson);
+                return;
+            }
+
+            finalizeCommand(input, lesson, output);
+        }
+
+        function finalizeCommand(input, lesson, output = "") {
+            document.getElementById('terminal-input').disabled = false;
+            document.getElementById('terminal-input').focus();
+            
+            // Check Success
+            let isCorrect = false;
+            
+            // Remove sudo for easier checking
+            const cleanInput = input.replace('sudo ', '').trim(); 
+            const cleanTarget = lesson.cmd.replace('sudo ', '').trim();
+
+            if (currentMode === 'tutorial' || currentMode === 'exam_basic') {
+                if (input.includes(cleanTarget) || cleanInput === cleanTarget) isCorrect = true;
+                // Special case for complex echo/tee commands: just check key parts
+                if (lesson.id === 4 && input.includes('ros2.list')) isCorrect = true;
+                if (lesson.id === 3 && input.includes('ros.key')) isCorrect = true;
+            } else if (currentMode === 'exam_advanced') {
+                if (lesson.type === 'step_chain') {
+                    // Complex logic omitted for brevity, simplified check
+                    if (input.includes(lesson.cmd.split(' ')[0])) isCorrect = true;
+                } else if (lesson.type === 'step') {
+                    if (input.includes(lesson.cmd.replace('sudo ', ''))) isCorrect = true;
+                }
+            }
+
+            // Always show history
+            addHistory(input, output, isCorrect);
+            document.getElementById('terminal-input').value = '';
+
+            // Handle Success
+            if (isCorrect) triggerSuccess(lesson);
+            else if (currentMode !== 'tutorial') {
+                // In free roam/exam, allow non-matching valid commands
+            }
+        }
+
+        function simulateAptUpdate(callback) {
+            const hist = document.getElementById('terminal-history');
+            const id = 'apt-log-' + Date.now();
+            hist.innerHTML += `<div id="${id}" class="text-gray-400 text-xs mb-2"></div>`;
+            const log = document.getElementById(id);
+            
+            const lines = [
+                "Hit:1 http://archive.ubuntu.com/ubuntu jammy InRelease",
+                "Get:2 http://security.ubuntu.com/ubuntu jammy-security InRelease [110 kB]",
+                "Hit:3 http://packages.ros.org/ros2/ubuntu jammy InRelease",
+                "Reading package lists... Done"
+            ];
+            
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i < lines.length) {
+                    log.innerHTML += lines[i] + "<br>";
+                    document.getElementById('terminal-container').scrollTop = document.getElementById('terminal-container').scrollHeight;
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    callback();
+                }
+            }, 300); // Speed of update
+        }
+
+        function simulateAptInstall(callback) {
+            const hist = document.getElementById('terminal-history');
+            const id = 'apt-prog-' + Date.now();
+            hist.innerHTML += `<div id="${id}" class="text-gray-400 text-xs mb-2"></div>`;
+            const log = document.getElementById(id);
+            
+            log.innerHTML = "Reading package lists... Done<br>Building dependency tree... Done<br>The following NEW packages will be installed:<br>  ros-humble-desktop<br>";
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                log.innerHTML += `Get:1 archive.ubuntu.com ... [${progress}%]<br>`;
+                document.getElementById('terminal-container').scrollTop = document.getElementById('terminal-container').scrollHeight;
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    log.innerHTML += "Unpacking ros-humble-desktop... Done.<br>Setting up ros-humble-desktop... Done.<br>";
+                    callback();
+                }
+            }, 200);
+        }
+
+        function triggerSuccess(lesson) {
+            if(!isLevelSuccess) {
+                isLevelSuccess = true;
+                score += 10;
+                userProgress[currentMode].score = score;
+                saveState();
+                updateStats();
+                
+                document.getElementById('success-takeaway').innerText = lesson.takeaway || lesson.successMsg || "Task Completed";
+                document.getElementById('success-panel').classList.remove('hidden');
+                document.getElementById('success-panel').classList.add('fade-in-up');
+                document.getElementById('btn-next-level').focus();
+            }
+        }
+
+        function addHistory(cmd, output, isSuccess) {
+            const div = document.createElement('div');
+            div.className = "mb-2 animate-fade-in";
+            let highlight = isSuccess ? "glow-command" : "";
+            
+            div.innerHTML = `
+                <div class="flex items-center ${highlight}">
+                    <span class="ubuntu-prompt mr-2 font-bold min-w-fit whitespace-nowrap">
+                        ${document.getElementById('prompt-path').innerText}
+                    </span>
+                    <span class="text-white">${cmd}</span>
+                    ${isSuccess?'<i data-lucide="check" class="w-4 h-4 text-green-400 ml-2"></i>':''}
+                </div>
+                ${output?`<div class="text-gray-300 whitespace-pre-wrap ml-0 mt-1">${output}</div>`:''}
+            `;
+            document.getElementById('terminal-history').appendChild(div);
+            lucide.createIcons();
+            document.getElementById('terminal-container').scrollTop = document.getElementById('terminal-container').scrollHeight;
+        }
+
+        function nextLevel() {
+            const list = getLessons();
+            if(currentIndex < list.length - 1) {
+                currentIndex++;
+                userProgress[currentMode].idx = currentIndex;
+                saveState();
+                loadLesson();
+            } else {
+                finishModule();
+            }
+        }
+
+        function finishModule() {
+            document.getElementById('screen-lab').classList.add('hidden');
+            document.getElementById('screen-cert').classList.remove('hidden');
+            
+            document.getElementById('cert-name').innerText = user.name;
+            document.getElementById('cert-id').innerText = user.id;
+            document.getElementById('cert-group').innerText = user.group;
+            document.getElementById('cert-score').innerText = score;
+            document.getElementById('cert-module').innerText = currentMode.toUpperCase().replace('_', ' ');
+            document.getElementById('cert-date').innerText = new Date().toLocaleDateString('th-TH');
+        }
+
+        function backToHome() {
+            document.getElementById('screen-lab').classList.add('hidden');
+            document.getElementById('screen-cert').classList.add('hidden');
+            showModeScreen();
+        }
+
+        // --- NANO HANDLING ---
+        function openNano(f, lesson) {
+            document.getElementById('nano-editor').classList.remove('hidden');
+            document.getElementById('nano-editor').classList.add('flex');
+            document.getElementById('nano-filename').innerText = `File: ${f}`;
+            
+            const hintBox = document.getElementById('nano-hint-box');
+            if(lesson.snippet) {
+                hintBox.classList.remove('hidden');
+                document.getElementById('nano-code-snippet').innerText = lesson.snippet;
+            } else {
+                hintBox.classList.add('hidden');
+            }
+        }
+        
+        function exitNano() {
+            document.getElementById('nano-editor').classList.add('hidden');
+            document.getElementById('nano-editor').classList.remove('flex');
+            
+            const list = getLessons();
+            const lesson = list[currentIndex];
+            const f = document.getElementById('nano-filename').innerText.split(' ')[1];
+            
+            // Log the save
+            addHistory(`nano ${f}`, "File saved and buffer written.", true);
+            
+            // Check if this nano edit was the mission
+            if(lesson.cmd === 'nano' || lesson.type === 'scenario_edit') {
+                triggerSuccess(lesson);
+            }
+        }
+        
+        function saveCert() {
+            html2canvas(document.getElementById('cert-content')).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `ROS2_Install_${currentMode}_${user.id}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+
+        document.getElementById('terminal-input').addEventListener('keydown', (e) => {
+            if(e.key === 'Enter' && !e.target.disabled) checkCommand(document.getElementById('terminal-input').value);
+        });
+
+        init();
+    </script>
+</body>
+</html>
